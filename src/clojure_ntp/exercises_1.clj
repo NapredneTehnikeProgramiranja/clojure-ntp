@@ -39,35 +39,45 @@
 ;; drop-nth
 ;; ----------------------------------------------------------------------
 
-(doc conj)
+(doc concat)
 ;; =>
 ;; -------------------------
-;; clojure.core/conj
-;; ([coll x] [coll x & xs])
-;; conj[oin]. Returns a new collection with the xs
-;; 'added'. (conj nil item) returns (item).  The 'addition' may
-;; happen at different 'places' depending on the concrete type.
+;; clojure.core/concat
+;; ([] [x] [x y] [x y & zs])
+;; Returns a lazy seq representing the concatenation of the elements in the supplied colls.
 ;; nil
 
-(defn drop-nth [v n]
+(doc into)
+;; =>
+;; -------------------------
+;; clojure.core/into
+;; ([to from] [to xform from])
+;; Returns a new coll consisting of to-coll with all of the items of
+;; from-coll conjoined. A transducer may be supplied.
+;; nil
+
+(defn drop-nth
+  "Drop every nth element from a vector starting with first if n fits
+  in length of v."
+  [v n]
   (loop [v   v
          acc []]
     (if (> n (count v))
-      acc
+      (into [] acc)
       (recur (drop n v)
-             (->> (dec n) (nth v) (conj acc))))))
+             (->> v (take (dec n)) (concat acc))))))
 
 (drop-nth (range 10) 2)
-;; => [1 3 5 7 9]
+;; => [0 2 4 6 8]
 
 (drop-nth (range 10) 3)
-;; => [2 5 8]
+;; => [0 1 3 4 6 7]
 
 (drop-nth (range 10) 5)
-;; => [4 9]
+;; => [0 1 2 3 5 6 7 8]
 
 (drop-nth (range 10) 10)
-;; => [9]
+;; => [0 1 2 3 4 5 6 7 8]
 
 (drop-nth (range 10) 11)
 ;; => []
@@ -95,25 +105,54 @@
 ;; provided.
 ;; nil
 
-(defn drop-nth-2 [v n]
-  (keep-indexed (fn [i v] (if (-> i
-                                  inc
-                                  (mod n)
-                                  zero?)
-                            v))
-                v))
+(defn drop-nth-2
+  "Drop every nth element from a vector starting with first if n fits
+  in length of v."
+  [v n]
+  (if (>= (count v) n)
+    (vec
+     (keep-indexed (fn [i v] (if (-> i
+                                     (mod n)
+                                     zero?
+                                     not)
+                               v))
+                   v))
+    []))
 
 (drop-nth-2 (range 10) 2)
-;; => (1 3 5 7 9)
+;; => [1 3 5 7 9]
 
 (drop-nth-2 (range 10) 3)
-;; => (2 5 8)
+;; => [1 2 4 5 7 8]
 
 (drop-nth-2 (range 10) 5)
-;; => (4 9)
+;; => [1 2 3 4 6 7 8 9]
 
 (drop-nth-2 (range 10) 10)
-;; => (9)
+;; => [1 2 3 4 5 6 7 8 9]
 
 (drop-nth-2 (range 10) 11)
-;; => ()
+;; => []
+
+(defn drop-nthh
+  "Drop every n-th element using only take-nth and a little bit of
+  type theory."
+  [v n]
+  (if (>= (count v) n)
+    (vec (clojure.set/difference (apply sorted-set v) (take-nth n v)))
+    []))
+
+(drop-nthh (range 10) 2)
+;; => [1 3 5 7 9]
+
+(drop-nthh (range 10) 3)
+;; => [1 2 4 5 7 8]
+
+(drop-nthh (range 10) 5)
+;; => [1 2 3 4 6 7 8 9]
+
+(drop-nthh (range 10) 10)
+;; => [1 2 3 4 5 6 7 8 9]
+
+(drop-nthh (range 10) 11)
+;; => []
