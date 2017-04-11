@@ -1,6 +1,7 @@
 (ns clojure-ntp.partials
   (:require [clojure.java.jdbc :as jdbc]
-            [clojure.repl :refer :all]))
+            [clojure.repl :refer :all]
+            [clojure.string :as str]))
 
 (doc partial)
 ;; =>
@@ -73,3 +74,98 @@
 
 (a-result [0.23 0.12 8.12 4.2])
 ;; => (0.23 0.12 8.12 4.2)
+
+(map (partial - 2) [1 2 3])
+;; => (1 0 -1)
+
+(map #(- % 2) [1 2 3])
+;; => (-1 0 1)
+
+(defn minify [input]
+  (clojure.string/join
+   (map clojure.string/trim
+        (clojure.string/split-lines input))))
+
+(minify "javascriptcode javascriptcode    \njavascriptcodejavascriptco   \n")
+;; => javascriptcode javascriptcodejavascriptcodejavascriptco
+
+(defn minify2 [input]
+  (-> clojure.string/trim
+      (map (clojure.string/split-lines input))
+      clojure.string/join))
+
+(minify2 "javascriptcode javascriptcode    \njavascriptcodejavascriptco   \n")
+;; => "javascriptcode javascriptcodejavascriptcodejavascriptco"
+
+(def result (map #(do (println ".") (inc %)) [0 1 2 3]))
+
+result
+;; =>
+;; .
+;; .
+;; .
+;; .
+;; (1 2 3 4)
+
+(def fib-seq
+  (lazy-cat [1 1] (map + (rest fib-seq) fib-seq)))
+
+(doc lazy-cat)
+;; =>
+;; -------------------------
+;; clojure.core/lazy-cat
+;; ([& colls])
+;; Macro
+;; Expands to code which yields a lazy sequence of the concatenation
+;; of the supplied colls.  Each coll expr is not evaluated until it is
+;; needed.
+
+;; (lazy-cat xs ys zs) === (concat (lazy-seq xs) (lazy-seq ys) (lazy-seq zs))
+;; nil
+
+(take 10 fib-seq)
+;; => (1 1 2 3 5 8 13 21 34 55)
+
+(doc take)
+;; =>
+;; -------------------------
+;; clojure.core/take
+;; ([n] [n coll])
+;; Returns a lazy sequence of the first n items in coll, or all items if
+;; there are fewer than n.  Returns a stateful transducer when
+;; no collection is provided.
+;; nil
+
+(def people ["Milica" "Milan" "Ivan" "Stefan" "Nikolina" "Nikola" "Ilija" "Dunja"
+             "Višnja" "Aida" "Nemanja" "Ivona" "Petar" "Petra" "Aagda" "Dušan"])
+
+(mapv #(vector %1 %2) (cycle [:up :down :left :right]) people)
+;; =>
+;; [[:up "Milica"]
+;;  [:down "Milan"]
+;;  [:left "Ivan"]
+;;  [:right "Stefan"]
+;;  [:up "Nikolina"]
+;;  [:down "Nikola"]
+;;  [:left "Ilija"]
+;;  [:right "Dunja"]
+;;  [:up "Višnja"]
+;;  [:down "Aida"]
+;;  [:left "Nemanja"]
+;;  [:right "Ivona"]
+;;  [:up "Petar"]
+;;  [:down "Petra"]
+;;  [:left "Aagda"]
+;;  [:right "Dušan"]]
+
+(doc mapv)
+;; =>
+;; -------------------------
+;; clojure.core/mapv
+;; ([f coll] [f c1 c2] [f c1 c2 c3] [f c1 c2 c3 & colls])
+;; Returns a vector consisting of the result of applying f to the
+;; set of first items of each coll, followed by applying f to the set
+;; of second items in each coll, until any one of the colls is
+;; exhausted.  Any remaining items in other colls are ignored. Function
+;; f should accept number-of-colls arguments.
+;; nil
