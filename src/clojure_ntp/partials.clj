@@ -169,3 +169,11 @@ result
 ;; exhausted.  Any remaining items in other colls are ignored. Function
 ;; f should accept number-of-colls arguments.
 ;; nil
+
+(doc vector)
+;; =>
+;; -------------------------
+;; clojure.core/vector
+;; ([] [a] [a b] [a b c] [a b c d] [a b c d e] [a b c d e f] [a b c d e f & args])
+;; Creates a new vector containing the args.
+;; nil
