@@ -51,17 +51,18 @@
                :subname     "//localhost:5453/our_little_database"})
 
     (def query (partial jdbc/query spec))
+
     (def insert! (partial jdbc/insert! spec))
 
     (defn all-users []
-      (jdbc/query ["select * from login order by username desc"])
+      (query ["select * from login order by username desc"])
 
       (defn find-user [username]
-        (jdbc/query ["select * from login where username = ?" username]))
+        (query ["select * from login where username = ?" username]))
 
       (defn create-user [username password]
-        (jdbc/insert! :login {:username username :password password
-                              :sal      "some_salt"}))))
+        (insert! :login {:username username :password password
+                         :sal      "some_salt"}))))
 
 (defn apply-sales-tax [items]
   (map (partial * 1.6) items))
