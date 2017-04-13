@@ -156,3 +156,50 @@
 
 (drop-nthh (range 10) 11)
 ;; => []
+
+(doc apply)
+;; =>
+;; -------------------------
+;; clojure.core/apply
+;; ([f args] [f x args] [f x y args] [f x y z args] [f a b c d & args])
+;; Applies fn f to the argument list formed by prepending intervening arguments to args.
+;; nil
+
+(defn flip
+  "Flip the parameters of a function."
+  [f]
+  (fn [& args]
+    (apply f (reverse args))))
+
+(= 3 ((flip nth) 2 [1 2 3 4 5]))
+;; => true
+
+(= true ((flip >) 7 8))
+;; => true
+
+(= 4 ((flip quot) 2 8))
+;; => true
+
+(= [1 2 3] ((flip take) [1 2 3 4 5] 3))
+;; => true
+
+(defn b-tree?
+  "Predicate that checks is s a binary tree or not."
+  [s]
+  (if (coll? s)
+    (if (not= (count s) 3)
+      false
+      (and (b-tree? (nth s 1)) (b-tree? (nth s 2))))
+    true))
+
+(b-tree? [1 [2 [3 [4 false nil] nil] nil] nil])
+;; => true
+
+(b-tree? '(:a nil ()))
+;; => false
+
+(b-tree? [1 [2 nil nil] [3 nil nil] [4 nil nil]])
+;; => false
+
+(b-tree? '(:a (:b nil nil) nil))
+;; => true
