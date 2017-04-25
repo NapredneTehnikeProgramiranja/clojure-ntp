@@ -113,3 +113,102 @@ app-state
 ;; We have to pay taxes.
 ;; @state
 ;; {:account 120.0}
+
+(doc throw)
+;; =>
+;; -------------------------
+;; throw
+;; (throw expr)
+;; Special Form
+;; The expr is evaluated and thrown, therefore it should
+;; yield an instance of some derivee of Throwable.
+
+;; Please see http://clojure.org/special_forms#throw
+;; nil
+
+(def savings (atom {:balance 300}))
+(def checking (atom {:balance 700}))
+
+(defn transfer
+  "Transfer 200 from checking to savings."
+  []
+  (swap! checking assoc :balance 500)
+  (throw (Exception. "Something went wrong..."))
+  (swap! savings assoc :balance 500))
+
+;; @savings
+;; {:balance 300}
+;; @checking
+;; {:balance 700}
+;; (transfer)
+;; Exception Something went wrong...  clojure-ntp.atoms/transfer (form-init7567172114564680926.clj:124)
+;; @savings
+;; {:balance 300}
+;; @checking
+;; {:balance 500}
+
+(doc dosync)
+;; =>
+;; -------------------------
+;; clojure.core/dosync
+;; ([& exprs])
+;; Macro
+;; Runs the exprs (in an implicit do) in a transaction that encompasses
+;; exprs and any nested calls.  Starts a transaction if none is already
+;; running on this thread. Any uncaught exception will abort the
+;; transaction and flow out of dosync. The exprs may be run more than
+;; once, but any effects on Refs will be atomic.
+;; nil
+
+(doc commute)
+;; =>
+;; -------------------------
+;; clojure.core/commute
+;; ([ref fun & args])
+;; Must be called in a transaction. Sets the in-transaction-value of
+;; ref to:
+
+;; (apply fun in-transaction-value-of-ref args)
+
+;; and returns the in-transaction-value of ref.
+
+;; At the commit point of the transaction, sets the value of ref to be:
+
+;; (apply fun most-recently-committed-value-of-ref args)
+
+;; Thus fun should be commutative, or, failing that, you must accept
+;; last-one-in-wins behavior.  commute allows for more concurrency than
+;; ref-set.
+;; nil
+
+(def savings (ref {:balance 300}))
+(def checking (ref {:balance 700}))
+
+(defn transfer
+  "Transfer 200 from checking to savings."
+  [& e]
+  (dosync
+   (commute checking assoc :balance 500)
+   (when e
+     (throw (Exception. "Something went wrong...")))
+   (commute savings assoc :balance 500)))
+
+;;;; Flow when transaction fails and everything stay untouched (but consistent).
+;; @savings
+;; {:balance 300}
+;; @checking
+;; {:balance 700}
+;; (transfer true)
+;; Exception Something went wrong...  clojure-ntp.atoms/transfer/fn--20417 (form-init7567172114564680926.clj:192)
+;; @savings
+;; {:balance 300}
+;; @checking
+;; {:balance 700}
+
+;;;; Flow when transaction succeed and things change (in consistent manner).
+;; (transfer)
+;; {:balance 500}
+;; savings
+;; {:balance 500}
+;; @checking
+;; {:balance 500}
