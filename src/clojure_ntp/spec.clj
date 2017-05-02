@@ -81,3 +81,242 @@
 
 ;;   Optionally takes :gen generator-fn, which must be a fn of no args that
 ;;   returns a test.check generator.
+
+(def email-regex #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$")
+(s/def ::email-type (s/and string? #(re-matches email-regex %)))
+
+(s/def ::acctid int?)
+(s/def ::first-name string?)
+(s/def ::last-name string?)
+(s/def ::email ::email-type)
+(s/def ::phone (s/and string? #(and (> (count %) 5)
+                                    (< (count %) 10))))
+
+(s/def ::person (s/keys :req [::name-or-id ::first-name ::last-name ::email]
+                        :opt [::phone]))
+
+(s/valid? ::person
+          {::name-or-id 43
+           ::first-name "Elon"
+           ::last-name  "Musk"
+           ::email      "elon@example.com"})
+;; => true
+
+(s/valid? ::person
+          {::name-or-id 43
+           ::first-name "Elon"
+           ::last-name  "Musk"
+           ::email      "elon#example.com"})
+;; => false
+
+(s/explain-data ::person {::id 43
+                          ::first-name "Elon"
+                          ::last-name  "Musk"
+                          ::email      "elon#example.com"})
+;; =>
+;; #:clojure.spec.alpha{:problems
+;;                      ({:path              [],
+;;                        :pred
+;;                        (contains? % :clojure-ntp.spec/name-or-id),
+;;                        :val
+;;                        #:clojure-ntp.spec {:id         43,
+;;                                            :first-name "Elon",
+;;                                            :last-name  "Musk",
+;;                                            :email      "elon#example.com"},
+;;                        :via               [:clojure-ntp.spec/person],
+;;                        :in                []}
+;;                       {:path [:clojure-ntp.spec/email],
+;;                        :pred (re-matches email-regex %),
+;;                        :val  "elon#example.com",
+;;                        :via
+;;                        [:clojure-ntp.spec/person
+;;                         :clojure-ntp.spec/email-type],
+;;                        :in   [:clojure-ntp.spec/email]})}
+
+;; (doc s/coll-of)
+;; =>
+;; -------------------------
+;; clojure.spec.alpha/coll-of
+;; ([pred & opts])
+;; Macro
+;; Returns a spec for a collection of items satisfying pred. Unlike
+;; 'every', coll-of will exhaustively conform every value.
+
+;; Same options as 'every'. conform will produce a collection
+;; corresponding to :into if supplied, else will match the input collection,
+;; avoiding rebuilding when possible.
+
+;; See also - every, map-of
+
+(s/valid? (s/coll-of number?) [1 2 3])
+;; => true
+(s/valid? (s/coll-of number?) '(1 2))
+;; => true
+(s/valid? (s/coll-of number?) #{1})
+;; => true
+(s/valid? (s/coll-of number?) {:a 1})
+;; => false
+
+;; (doc s/tuple)
+;; =>
+;; -------------------------
+;; clojure.spec.alpha/tuple
+;; ([& preds])
+;; Macro
+;; takes one or more preds and returns a spec for a tuple, a vector
+;; where each element conforms to the corresponding pred. Each element
+;; will be referred to in paths using its ordinal.
+
+(s/valid? (s/tuple string? number? keyword?) ["a" 1 :a])
+;; => true
+(s/valid? (s/tuple string? number? keyword?) ["a" 1])
+;; => false
+(s/valid? (s/tuple string? number? keyword?) '("a" 1 :a))
+;; => false
+
+(doc s/map-of)
+;; =>
+;; -------------------------
+;; clojure.spec.alpha/map-of
+;; ([kpred vpred & opts])
+;; Macro
+;; Returns a spec for a map whose keys satisfy kpred and vals satisfy
+;; vpred. Unlike 'every-kv', map-of will exhaustively conform every
+;; value.
+
+;; Same options as 'every', :kind defaults to map?, with the addition of:
+
+;; :conform-keys - conform keys as well as values (default false)
+
+;; See also - every-kv
+
+(s/valid? (s/map-of integer? string?) {1 "one" 2 "two"})
+;; => true
+(s/valid? (s/map-of integer? string?) {1 "one" 2 22})
+;; => false
+
+(s/def ::ingredient (s/cat :quantity number? :unit keyword?))
+(s/valid? ::ingredient [2 :teaspoon])
+;; => true
+(s/conform ::ingredient [2 :teaspoon])
+;; => {:quantity 2, :unit :teaspoon}
+
+(s/valid? (s/* keyword?) [:a :b :c])
+;; => true
+(s/valid? (s/* keyword?) [:a])
+;; => true
+(s/valid? (s/* keyword?) [:a 1])
+;; => false
+
+;; (doc s/fdef)
+;; =>
+;; -------------------------
+;; clojure.spec.alpha/fdef
+;; ([fn-sym & specs])
+;; Macro
+;;   Takes a symbol naming a function, and one or more of the following:
+
+;;   :args A regex spec for the function arguments as they were a list to be
+;;     passed to apply - in this way, a single spec can handle functions with
+;;     multiple arities
+;;   :ret A spec for the function's return value
+;;   :fn A spec of the relationship between args and ret - the
+;;     value passed is {:args conformed-args :ret conformed-ret} and is
+;;     expected to contain predicates that relate those values
+
+;;   Qualifies fn-sym with resolve, or using *ns* if no resolution found.
+;;   Registers an fspec in the global registry, where it can be retrieved
+;;   by calling get-spec with the var or fully-qualified symbol.
+
+;;   Once registered, function specs are included in doc, checked by
+;;   instrument, tested by the runner clojure.spec.test.alpha/check, and (if
+;;   a macro) used to explain errors during macroexpansion.
+
+;;   Note that :fn specs require the presence of :args and :ret specs to
+;;   conform values, and so :fn specs will be ignored if :args or :ret
+;;   are missing.
+
+;;   Returns the qualified fn-sym.
+
+;;   For example, to register function specs for the symbol function:
+
+;;   (s/fdef clojure.core/symbol
+;;     :args (s/alt :separate (s/cat :ns string? :n string?)
+;;                  :str string?
+;;                  :sym symbol?)
+;;     :ret symbol?)
+
+(require '[clojure.spec.test.alpha :as st])
+
+;; (doc st/instrument)
+;; =>
+;; -------------------------
+;; clojure.spec.test.alpha/instrument
+;; ([] [sym-or-syms] [sym-or-syms opts])
+;;   Instruments the vars named by sym-or-syms, a symbol or collection
+;; of symbols, or all instrumentable vars if sym-or-syms is not
+;; specified.
+
+;; If a var has an :args fn-spec, sets the var's root binding to a
+;; fn that checks arg conformance (throwing an exception on failure)
+;; before delegating to the original fn.
+
+;; The opts map can be used to override registered specs, and/or to
+;; replace fn implementations entirely. Opts for symbols not included
+;; in sym-or-syms are ignored. This facilitates sharing a common
+;; options map across many different calls to instrument.
+
+;; The opts map may have the following keys:
+
+;;   :spec     a map from var-name symbols to override specs
+;;   :stub     a set of var-name symbols to be replaced by stubs
+;;   :gen      a map from spec names to generator overrides
+;;   :replace  a map from var-name symbols to replacement fns
+
+;; :spec overrides registered fn-specs with specs your provide. Use
+;; :spec overrides to provide specs for libraries that do not have
+;; them, or to constrain your own use of a fn to a subset of its
+;; spec'ed contract.
+
+;; :stub replaces a fn with a stub that checks :args, then uses the
+;; :ret spec to generate a return value.
+
+;; :gen overrides are used only for :stub generation.
+
+;; :replace replaces a fn with a fn that checks args conformance, then
+;; invokes the fn you provide, enabling arbitrary stubbing and mocking.
+
+;; :spec can be used in combination with :stub or :replace.
+
+;; Returns a collection of syms naming the vars instrumented.
+
+(defn ranged-rand
+  "Returns random int in range start <= rand < end"
+  [start end]
+  (+ start (long (rand (- end start)))))
+
+(s/fdef ranged-rand
+        :args (s/and (s/cat :start int? :end int?)
+                     #(< (:start %) (:end %)))
+        :ret int?
+        :fn (s/and #(>= (:ret %) (-> % :args :start))
+                   #(< (:ret %) (-> % :args :end))))
+
+(ranged-rand 10 20)
+;; => 11
+
+(ranged-rand 20 10)
+;; => 11
+
+(st/instrument `ranged-rand)
+
+(ranged-rand 20 10)
+;; => Run time error
+;; {:clojure.spec.alpha/problems [{:path [:args], :pred (< (:start %) (:end %)),
+;;                                 :val {:start 20, :end 10}, :via [], :in []}],
+;;  :clojure.spec.alpha/args (20 10),
+;;  :clojure.spec.alpha/failure :instrument,
+;;  :clojure.spec.test.alpha/caller
+;;  {:file "form-init2622668631526581668.clj",
+;;   :line 313,
+;;   :var-scope clojure-ntp.spec/eval24505}}
