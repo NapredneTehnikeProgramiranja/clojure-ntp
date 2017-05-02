@@ -48,7 +48,7 @@
 (s/explain ::name-or-id 1)
 ;; => Success!
 
-(doc s/keys)
+;; (doc s/keys)
 ;; =>
 ;; -------------------------
 ;; clojure.spec.alpha/keys
@@ -174,7 +174,7 @@
 (s/valid? (s/tuple string? number? keyword?) '("a" 1 :a))
 ;; => false
 
-(doc s/map-of)
+;; (doc s/map-of)
 ;; =>
 ;; -------------------------
 ;; clojure.spec.alpha/map-of
@@ -310,7 +310,7 @@
 
 (st/instrument `ranged-rand)
 
-(ranged-rand 20 10)
+;; (ranged-rand 20 10)
 ;; => Run time error
 ;; {:clojure.spec.alpha/problems [{:path [:args], :pred (< (:start %) (:end %)),
 ;;                                 :val {:start 20, :end 10}, :via [], :in []}],
@@ -320,3 +320,76 @@
 ;;  {:file "form-init2622668631526581668.clj",
 ;;   :line 313,
 ;;   :var-scope clojure-ntp.spec/eval24505}}
+
+(require '[clojure.spec.gen.alpha :as gen])
+
+;; (doc s/gen)
+;; =>
+;; -------------------------
+;; clojure.spec.alpha/gen
+;; ([spec] [spec overrides])
+;; Given a spec, returns the generator for it, or throws if none can
+;; be constructed. Optionally an overrides map can be provided which
+;; should map spec names or paths (vectors of keywords) to no-arg
+;; generator-creating fns. These will be used instead of the generators at those
+;; names/paths. Note that parent generator (in the spec or overrides
+;;                                             map) will supersede those of any subtrees. A generator for a regex
+;; op must always return a sequential collection (i.e. a generator for
+;;                                                     s/? should return either an empty sequence/vector or a
+;;                                                     sequence/vector with one item in it)
+
+;; (doc gen/generate)
+;; =>
+;; -------------------------
+;; clojure.spec.gen.alpha/generate
+;; ([generator])
+;; Generate a single value using generator.
+
+(s/def ::article (s/cat :id pos-int? :name string?))
+
+(gen/generate (s/gen ::article))
+;; => (5 "ZUy89X72lb1l5Nzj52EIdUMj1Rq5ui")
+
+(gen/sample (s/gen ::article))
+;; =>
+;; ((1 "")
+;;  (2 "0")
+;;  (1 "")
+;;  (2 "")
+;;  (1 "RtPf")
+;;  (2 "2nZ")
+;;  (1 "")
+;;  (2 "lo78A")
+;;  (3 "rc")
+;;  (2 "IWy"))
+
+(s/exercise (s/or :k keyword? :s string? :n number?) 5)
+;; =>
+;; ([:d [:k :d]]
+;;  [:x/y3 [:k :x/y3]]
+;;  [:Np.x/_ [:k :Np.x/_]]
+;;  [0 [:n 0]]
+;;  ["lcvR" [:s "lcvR"]])
+
+;; (doc s/exercise-fn)
+;; =>
+;; -------------------------
+;; clojure.spec.alpha/exercise-fn
+;; ([sym] [sym n] [sym-or-f n fspec])
+;; exercises the fn named by sym (a symbol) by applying it to
+;; n (default 10) generated samples of its args spec. When fspec is
+;; supplied its arg spec is used, and sym-or-f can be a fn.  Returns a
+;; sequence of tuples of [args ret].
+
+(s/exercise-fn `ranged-rand)
+;; =>
+;; ([(-4 0) -2]
+;;  [(-1 0) -1]
+;;  [(-1 1) -1]
+;;  [(-2 0) -1]
+;;  [(-1 1) -1]
+;;  [(-1 0) -1]
+;;  [(-3 6) 1]
+;;  [(4 45) 31]
+;;  [(-8 -4) -6]
+;;  [(-145 -20) -142])
