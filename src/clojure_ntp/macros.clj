@@ -91,3 +91,28 @@
 
 (foo "good people")
 ;; => Hello good people
+
+;; -----------------------------------------------------------------------------
+;; Syntax quoting
+
+`(def a1 (+ 1 2))
+;; => (def clojure-ntp.macros/a1 (clojure.core/+ 1 2))
+
+`(def a2 (* 43 ~(+ 1 2)))
+;; => (def clojure-ntp.macros/a2 (clojure.core/* 43 3))
+
+`~(def a3 (* 43 (+ 1 2)))
+;; => #'clojure-ntp.macros/a3
+
+a3
+;; => 129
+
+;; a1
+;; => Error: Unable to resolve symbol: a1 in this context
+
+;; a2
+;; => Error: Unable to resolve symbol: a2 in this context
+
+(let [forms `(+ [1 2 3])]
+  `(def b (apply ~@forms)))
+;; => (def clojure-ntp.macros/b (clojure.core/apply clojure.core/+ [1 2 3]))
