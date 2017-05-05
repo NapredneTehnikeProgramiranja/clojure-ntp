@@ -60,27 +60,29 @@
   "Drop every nth element from a vector starting with first if n fits
   in length of v."
   [v n]
-  (loop [v   v
-         acc []]
-    (if (> n (count v))
-      (into [] acc)
-      (recur (drop n v)
-             (->> v (take (dec n)) (concat acc))))))
+  (if (< (count v) n)
+    v
+    (loop [v   v
+           acc []]
+      (if (zero? (count v))
+        (into [] acc)
+        (recur (drop n v)
+               (->> v (take n) rest (concat acc)))))))
 
 (drop-nth (range 10) 2)
-;; => [0 2 4 6 8]
+;; => [1 3 5 7 9]
 
 (drop-nth (range 10) 3)
-;; => [0 1 3 4 6 7]
+;; => [1 2 4 5 7 8]
 
 (drop-nth (range 10) 5)
-;; => [0 1 2 3 5 6 7 8]
+;; => [1 2 3 4 6 7 8 9]
 
 (drop-nth (range 10) 10)
-;; => [0 1 2 3 4 5 6 7 8]
+;; => [1 2 3 4 5 6 7 8 9]
 
 (drop-nth (range 10) 11)
-;; => []
+;; => (0 1 2 3 4 5 6 7 8 9)
 
 (doc ->)
 ;; =>
@@ -117,7 +119,7 @@
                                      not)
                                v))
                    v))
-    []))
+    v))
 
 (drop-nth-2 (range 10) 2)
 ;; => [1 3 5 7 9]
@@ -132,15 +134,15 @@
 ;; => [1 2 3 4 5 6 7 8 9]
 
 (drop-nth-2 (range 10) 11)
-;; => []
+;; => (0 1 2 3 4 5 6 7 8 9)
 
 (defn drop-nthh
-  "Drop every n-th element using only take-nth and a little bit of
-  type theory."
+  "Drop every n-th element using only take-nth and a little bit of set
+  theory."
   [v n]
   (if (>= (count v) n)
     (vec (clojure.set/difference (apply sorted-set v) (take-nth n v)))
-    []))
+    v))
 
 (drop-nthh (range 10) 2)
 ;; => [1 3 5 7 9]
@@ -155,7 +157,7 @@
 ;; => [1 2 3 4 5 6 7 8 9]
 
 (drop-nthh (range 10) 11)
-;; => []
+;; => (0 1 2 3 4 5 6 7 8 9)
 
 (doc apply)
 ;; =>
