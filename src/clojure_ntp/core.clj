@@ -120,7 +120,7 @@
 
 (declare is-even-2? is-odd-2?)
 
-#(+ 1 2)
+#(+ %1 %2)
 ;; => #function[clojure-ntp.core/eval20359/fn--20360]
 
 (defn is-even-2? [n]
@@ -137,6 +137,9 @@
 ;; => false
 (trampoline is-even-2? 12)
 ;; => true
+
+(defn my-is-odd-2? [n]
+  (trampoline is-odd-2? n))
 
 (doc letfn)
 ;; =>
